@@ -1,0 +1,111 @@
+ifndef::manversion[:manversion: 0.0.0]
+
+= git-jot(1)
+Matthieu Monsch <mtth@apache.org>
+v{manversion}
+:doctype: manpage
+:manmanual: GIT-JOT
+:mansource: GIT-JOT
+
+
+== Name
+
+git-jot - emulate branch-local notes
+
+
+== Synopsis
+
+[verse]
+git-jot [-Eb BRANCH]
+git-jot -D [-ab BRANCH]
+git-jot -I [-aefb BRANCH] [-l BRANCH | -r REMOTE]
+git-jot -L
+git-jot -P
+git-jot -V [-b BRANCH]
+git-jot -X [-ab BRANCH] [-r REMOTE]
+git-jot -h
+
+
+== Description
+
+`git-jot` is a Bash script emulating `git-notes` functionality on branches.
+It is particularly useful for https://git-scm.com/book/en/v2/Git-Branching-Branching-Workflows[branching workflows], allowing the user to add context to the feature under development.
+Since it uses regular notes under the hood, they can be easily shared, unlike approaches based on branch descriptions.
+
+Typical usage looks like:
+
+[source,sh]
+----
+$ # Create a feature branch...
+$ git jot # Open an editor to add notes to this feature branch
+$ # Do some work...
+$ git jot # Update the existing note
+$ # Do some more work...
+$ git jot -V # View the note
+----
+
+When working on m
+
+Steps can be added to `git-hooks` to automate parts of this workflow, for example a `pre-push` hook to export the pushed branch's notes, if any.
+
+
+== Options
+
+`-D`::
+Delete branch notes.
+
+`-E`::
+Edit or create branch notes.
+This is the default command.
+This will open an interactive editor, similar to `git-notes edit`.
+
+`-I`::
+Import notes from another branch.
+If neither `-l` nor `-r` is specified, the branch's upstream will be used as source.
+
+`-L`::
+List all local branches with notes.
+
+`-P`::
+Prune notes matching deleted branches.
+
+`-X`::
+Export branch notes.
+If `-r` is not specified, the branch's default `push` remote will be used as target.
+This command can be run within a `pre-push` hook to ensure the remote contains the latest version of the notes.
+
+`-V`::
+View branch notes.
+Its contents are printed to stdout.
+
+`-a`::
+Return with a 0 exit code when no branch note was found.
+By default deleting, exporting, or importing will fail if no branch note is found.
+
+`-b BRANCH`::
+Name of the underlying branch.
+Defaults to the currently active branch.
+
+`-e`::
+Edit the note immediately after importing it.
+This will open an editor, and save the edited version.
+
+`-f`::
+Allow non-fast-forward updates.
+
+`-h`::
+Show help message.
+
+`-l BRANCH`::
+Source local branch to import the note from.
+
+`-r REMOTE`::
+Name of the remote to import the note from.
+The remote's branch name is assumed identical to the local target branch.
+
+
+== See also
+
+`git(1)`
+`git-notes(1)`
+`githooks(5)`
