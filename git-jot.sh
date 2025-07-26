@@ -227,7 +227,7 @@ main() { # ...
 			L) cmd=list ;;
 			P) cmd=prune ;;
 			V) cmd=view ;;
-			X) cmd=export ;;
+			X) cmd='export' ;;
 			a) allow_empty=1 ;;
 			b) _JOTTINGS_BRANCH="$OPTARG" ;;
 			e) edit=1 ;;
