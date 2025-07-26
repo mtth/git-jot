@@ -6,6 +6,8 @@ on:
 jobs:
   lint:
     name: Lint
+    timeout-minutes: 1
+    runs-on: ubuntu-latest
     steps:
       - name: Check out
         uses: actions/checkout@v4
