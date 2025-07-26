@@ -8,6 +8,8 @@ on:
 jobs:
   lint:
     name: Lint
+    timeout-minutes: 1
+    runs-on: ubuntu-latest
     steps:
       - name: Check out
         uses: actions/checkout@v4
@@ -32,6 +34,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
   build-pages:
     name: Build GitHub Pages
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     needs: tag
     steps:
@@ -61,6 +64,7 @@ jobs:
   deploy-pages:
     name: Deploy GitHub Pages
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: build-pages
     environment:
       name: github-pages
