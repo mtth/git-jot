@@ -51,7 +51,7 @@ jobs:
       - name: Generate man page
         run: |
           curl https://mtth.github.io/d/asciidoctor.css \
-            -o docs/asciidoctor.css
+            -o asciidoctor.css
           mkdir dist
           asciidoctor -b html git-jot.1.adoc \
             -a stylesheet=asciidoctor.css \
