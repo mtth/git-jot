@@ -30,6 +30,7 @@ git-jot -h
 
 `git-jot` is a Bash script emulating `git-notes` functionality on branches.
 It is particularly useful for https://git-scm.com/book/en/v2/Git-Branching-Branching-Workflows[branching workflows], allowing the user to add context to the feature under development.
+Notes are tied to the branch's name, and will persist as commits get added, merged, rebased, etc.
 Since it uses regular notes under the hood, they can be easily shared, unlike approaches based on branch descriptions.
 
 Typical usage looks like:
@@ -44,20 +45,19 @@ $ # Do some more work...
 $ git jot -V # View the note
 ----
 
-When working on m
-
-Steps can be added to `git-hooks` to automate parts of this workflow, for example a `pre-push` hook to export the pushed branch's notes, if any.
+Steps can be added to `git` hooks to automate parts of this workflow, for example a `pre-push` hook to export the pushed branch's notes, if any.
 
 
 == Options
 
 `-D`::
 Delete branch notes.
+See also `-P` to delete notes corresponding to deleted branches.
 
 `-E`::
 Edit or create branch notes.
+It will open an interactive editor, similar to `git-notes edit`.
 This is the default command.
-This will open an interactive editor, similar to `git-notes edit`.
 
 `-I`::
 Import notes from another branch.
@@ -81,6 +81,7 @@ Its contents are printed to stdout.
 `-a`::
 Return with a 0 exit code when no branch note was found.
 By default deleting, exporting, or importing will fail if no branch note is found.
+This can be useful for example to export notes from a hook.
 
 `-b BRANCH`::
 Name of the underlying branch.
@@ -94,10 +95,10 @@ This will open an editor, and save the edited version.
 Allow non-fast-forward updates.
 
 `-h`::
-Show help message.
+Show help message and exit.
 
 `-l BRANCH`::
-Source local branch to import the note from.
+Name of the local branch to import the note from.
 
 `-r REMOTE`::
 Name of the remote to import the note from.
