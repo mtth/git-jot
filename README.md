@@ -3,11 +3,17 @@
 Bash script to emulate branch notes, useful for [branching workflows][1]. These
 branch-local notes (_jottings_):
 
-* phttps://mtth.github.io/git-jot/ersist across commits, merges, and rebases;
+* persist across commits, merges, and rebases;
 * can be shared and stored on remotes.
 
 
-## Quickstart
+## Installation
+
+Copy `git-jot.sh` as `git-jot` somewhere in your `$PATH`, then make it
+executable. You can also install it from the [AUR][2].
+
+
+## Usage
 
 ```sh
 $ git jot # Open an editor to add notes to the current branch
@@ -23,10 +29,11 @@ $ git jot -X # Push the branch's note to its default remote
 See the [manpage](https://mtth.github.io/git-jot/) for more information.
 
 
-## Installation
+## Alternatives
 
-Copy `git-jot.sh` as `git-jot` somewhere in your `$PATH`, then make it
-executable.
+* [Git branch descriptions](https://stackoverflow.com/q/2108405)
+* [`git branchnotes`](https://gitlab.com/mockturtle/git-branchnotes)
 
 
 [1]: https://git-scm.com/book/en/v2/Git-Branching-Branching-Workflows
+[2]: https://aur.archlinux.org/packages/git-jot-git
