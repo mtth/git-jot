@@ -32,7 +32,8 @@ See the [manpage](https://mtth.github.io/git-jot/) for more information.
 ## Alternatives
 
 * [Git branch descriptions](https://stackoverflow.com/q/2108405)
-* [`git branchnotes`](https://gitlab.com/mockturtle/git-branchnotes)
+* [`git-branchnotes`](https://gitlab.com/mockturtle/git-branchnotes)
+* [`git-branch-notes`](https://github.com/ejmr/git-branch-notes)
 
 
 [1]: https://git-scm.com/book/en/v2/Git-Branching-Branching-Workflows
