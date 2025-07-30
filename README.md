@@ -9,8 +9,14 @@ branch-local notes (_jottings_):
 
 ## Installation
 
-Copy `git-jot.sh` as `git-jot` somewhere in your `$PATH`, then make it
-executable. You can also install it from the [AUR][2].
+From the [AUR][2], or with [Homebrew][3]:
+
+```sh
+brew install mtth/tap/git-jot
+```
+
+Otherwise install it manually by copying `git-jot.sh` as `git-jot` somewhere in
+your `$PATH`, then making it executable.
 
 
 ## Usage
@@ -38,3 +44,4 @@ See the [manpage](https://mtth.github.io/git-jot/) for more information.
 
 [1]: https://git-scm.com/book/en/v2/Git-Branching-Branching-Workflows
 [2]: https://aur.archlinux.org/packages/git-jot-git
+[3]: https://brew.sh/
