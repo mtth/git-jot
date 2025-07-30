@@ -16,7 +16,7 @@ usage() { # [CODE]
 		  $prog -I [-aefb BRANCH] [-l BRANCH | -r REMOTE]
 		  $prog -L
 		  $prog -P
-		  $prog -V [-b BRANCH]
+		  $prog -V [-tb BRANCH]
 		  $prog -X [-ab BRANCH] [-r REMOTE]
 		  $prog -h
 
@@ -37,6 +37,7 @@ usage() { # [CODE]
 		  -f         Allow non-fast-forward updates.
 		  -l BRANCH  Local branch to copy the note from.
 		  -r REMOTE  Remote name.
+		  -t         Show notes tree ref instead of contents.
 	EOF
 	exit "${1:-2}"
 }
@@ -208,18 +209,23 @@ prune_notes() { # /
 		done
 }
 
-view_note() { # /
-	local sha
+view_note() { # SHOW_TREE /
+	local show_tree="$1" sha
 	if ! sha="$(_find_blob)"; then
 		fail 'no jottings to show'
 	fi
-	_git_notes "$_JOTTINGS_BRANCH" show "$sha"
+	if (( show_tree )); then
+		printf '%s\n' "$notes_refprefix/$_JOTTINGS_BRANCH"
+	else
+		_git_notes "$_JOTTINGS_BRANCH" show "$sha"
+	fi
 }
 
 main() { # ...
 	local _JOTTINGS_BRANCH='' \
-		allow_empty=0 cmd=edit edit=0 force=0 frombranch='' remote='' opt
-	while getopts :DEILPVXab:efhl:r: opt "$@"; do
+			allow_empty=0 cmd=edit edit=0 force=0 frombranch='' remote='' \
+			show_tree=0 opt
+	while getopts :DEILPVXab:efhl:r:t opt "$@"; do
 		case "$opt" in
 			D) cmd=delete ;;
 			E) cmd=edit ;;
@@ -235,6 +241,7 @@ main() { # ...
 			h) usage 0 ;;
 			l) frombranch="$OPTARG" ;;
 			r) remote="$OPTARG" ;;
+			t) show_tree=1 ;;
 			*) fail "unknown option: $OPTARG" ;;
 		esac
 	done
@@ -266,7 +273,7 @@ main() { # ...
 		;;
 		list) list_notes ;;
 		prune) prune_notes ;;
-		view) view_note ;;
+		view) view_note "$show_tree" ;;
 	esac
 }
 
