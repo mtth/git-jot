@@ -21,7 +21,7 @@ git-jot -D [-ab BRANCH]
 git-jot -I [-aefb BRANCH] [-l BRANCH | -r REMOTE]
 git-jot -L
 git-jot -P
-git-jot -V [-b BRANCH]
+git-jot -V [-tb BRANCH]
 git-jot -X [-ab BRANCH] [-r REMOTE]
 git-jot -h
 
@@ -111,6 +111,10 @@ Name of the local branch to import the note from.
 `-r REMOTE`::
 Name of the remote to import the note from.
 The remote's branch name is assumed identical to the local target branch.
+
+`-t`::
+Show notes tree ref instead of contents.
+This can be used to perform operations on the underlying notes, for example to view the branch note's history via `git log -p "$(git jot -Vt)"`.
 
 
 == Implementation
