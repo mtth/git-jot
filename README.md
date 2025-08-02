@@ -4,7 +4,8 @@ Bash script to emulate branch notes, useful for [branching workflows][1]. These
 branch-local notes (_jottings_):
 
 * persist across commits, merges, and rebases;
-* can be shared and stored on remotes.
+* can be shared and stored on remotes;
+* inherit all note capabilities (e.g. history).
 
 
 ## Installation
@@ -32,7 +33,8 @@ $ git jot -V # View the original branch's note
 $ git jot -X # Push the branch's note to its default remote
 ```
 
-See the [manpage](https://mtth.github.io/git-jot/) for more information.
+See the [manpage](https://mtth.github.io/git-jot/) for all options and more
+information.
 
 
 ## Alternatives
