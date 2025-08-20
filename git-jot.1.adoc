@@ -55,6 +55,17 @@ hook() {
 }
 ----
 
+Other use-cases include using notes on the `main` branch to keep a running list of ideas.
+This can be made even more convenient by introducing a few aliases, for example:
+
+.`~/.config/git/config`
+[source]
+----
+[alias]
+  j = jot
+  jm = jot -b main
+----
+
 
 == Options
 
@@ -124,10 +135,11 @@ This can be used to perform operations on the underlying notes, for example to v
 Under the hood, `git-jot` performs the following actions to emulate a branch-local note:
 
 1. It creates a blob object unique to the target branch,
-2. It adds a reference to it of the form `/refs/jottings/blobs/$branch_name` to access it later on,
-3. It attaches all branch notes to the above object using a dedicated notes `ref` (`/refs/notes/jottings/$branch_name`).
+2. It adds a reference to it of the form `refs/jottings/blobs/$branch_name` to access it later on,
+3. It attaches all branch notes to the above object using a dedicated notes `ref` (`refs/notes/jottings/$branch_name`).
 
-Note that all state is contained in `git`.
+Imported remote notes are namespaced by remote name (`refs/jottings/remotes/$remote/`).
+Exported blobs are stored directly as `refs/jottings/$branch_name` in the remote.
 
 
 == See also
