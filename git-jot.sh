@@ -13,11 +13,11 @@ usage() { # [CODE]
 		Synopsis:
 		  $prog [-Eb BRANCH]
 		  $prog -D [-ab BRANCH]
-		  $prog -I [-aeb BRANCH] [-l BRANCH | -r REMOTE]
+		  $prog -I [-aeb BRANCH] [-l BRANCH | -fr REMOTE]
 		  $prog -L
 		  $prog -P
 		  $prog -V [-tb BRANCH]
-		  $prog -X [-ab BRANCH] [-r REMOTE]
+		  $prog -X [-afb BRANCH] [-r REMOTE]
 		  $prog -h
 
 		Operations:
@@ -128,7 +128,7 @@ list_notes() { # /
 	git for-each-ref --format='%(refname:lstrip=2)' "$blobs_refprefix"
 }
 
-import_local_note() { # FROMBRANCH ALLOW_EMPTY EDIT FORCE
+import_local_note() { # FROMBRANCH ALLOW_EMPTY EDIT
 	local frombranch="$1" allow_empty="$2" edit="$3" fromsha sha
 	if ! fromsha="$(_find_blob "$frombranch")"; then
 		if (( ! allow_empty )); then
@@ -158,7 +158,9 @@ import_remote_note() { # REMOTE ALLOW_EMPTY EDIT FORCE
 	printf 'Importing %s jottings from remote %s...\n' \
 		"$_JOTTINGS_BRANCH" "$remote"
 
-	GIT_JOT_IMPORTING=1 git fetch -f "$remote" \
+	local opts=()
+	(( ! force )) || opts+=(-f)
+	GIT_JOT_IMPORTING=1 git fetch "${opts[@]}" "$remote" \
 			"$notes_refprefix/$_JOTTINGS_BRANCH:$remotenotes_refprefix/$remote/$_JOTTINGS_BRANCH" \
 			"$blobs_remote_refprefix/$_JOTTINGS_BRANCH:$blobs_refprefix/$_JOTTINGS_BRANCH"
 
@@ -176,10 +178,10 @@ import_remote_note() { # REMOTE ALLOW_EMPTY EDIT FORCE
 	(( ! edit )) || _git_notes "$_JOTTINGS_BRANCH" edit "$sha"
 }
 
-export_note() { # REMOTE ALLOW_EMPTY
+export_note() { # REMOTE ALLOW_EMPTY FORCE
 	[[ -z ${GIT_JOT_EXPORTING:-} ]] || return 0
 
-	local remote="$1" allow_empty="$2"
+	local remote="$1" allow_empty="$2" force="$3"
 	if ! _find_blob >/dev/null; then
 		if (( ! allow_empty )); then
 			fail 'no jottings to export'
@@ -188,7 +190,10 @@ export_note() { # REMOTE ALLOW_EMPTY
 		return
 	fi
 	printf 'Exporting %s jottings to remote %s...\n' "$_JOTTINGS_BRANCH" "$remote"
-	GIT_JOT_EXPORTING=1 git push "$remote" \
+
+	local opts=()
+	(( ! force )) || opts+=(-f)
+	GIT_JOT_EXPORTING=1 git push "${opts[@]}" "$remote" \
 			"$notes_refprefix/$_JOTTINGS_BRANCH:$notes_refprefix/$_JOTTINGS_BRANCH" \
 			"$blobs_refprefix/$_JOTTINGS_BRANCH:$blobs_remote_refprefix/$_JOTTINGS_BRANCH"
 }
@@ -237,9 +242,9 @@ _migrate_refs() {
 
 main() { # ...
 	local _JOTTINGS_BRANCH='' \
-			allow_empty=0 cmd=edit edit=0 frombranch='' remote='' \
+			allow_empty=0 cmd=edit edit=0 force=0 frombranch='' remote='' \
 			show_tree=0 opt
-	while getopts :DEILPVXab:ehl:r:t opt "$@"; do
+	while getopts :DEILPVXab:efhl:r:t opt "$@"; do
 		case "$opt" in
 			D) cmd=delete ;;
 			E) cmd=edit ;;
@@ -251,6 +256,7 @@ main() { # ...
 			a) allow_empty=1 ;;
 			b) _JOTTINGS_BRANCH="$OPTARG" ;;
 			e) edit=1 ;;
+			f) force=1 ;;
 			h) usage 0 ;;
 			l) frombranch="$OPTARG" ;;
 			r) remote="$OPTARG" ;;
@@ -271,7 +277,7 @@ main() { # ...
 		edit) edit_note ;;
 		export)
 			remote="${remote:-$(_default_remote push)}"
-			export_note "$remote" "$allow_empty"
+			export_note "$remote" "$allow_empty" "$force"
 			;;
 		import)
 			if [[ -z $frombranch ]] && [[ -z $remote ]]; then
@@ -280,7 +286,7 @@ main() { # ...
 				fail 'only one of -l and -r can be set'
 			fi
 			if [[ -n $remote ]]; then
-				import_remote_note "$remote" "$allow_empty" "$edit"
+				import_remote_note "$remote" "$allow_empty" "$edit" "$force"
 			else
 				import_local_note "$frombranch" "$allow_empty" "$edit"
 			fi

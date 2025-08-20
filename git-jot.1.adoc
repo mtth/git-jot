@@ -18,11 +18,11 @@ git-jot - emulate branch-local notes
 [verse]
 git-jot [-Eb BRANCH]
 git-jot -D [-ab BRANCH]
-git-jot -I [-aeb BRANCH] [-l BRANCH | -r REMOTE]
+git-jot -I [-aeb BRANCH] [-l BRANCH | -fr REMOTE]
 git-jot -L
 git-jot -P
 git-jot -V [-tb BRANCH]
-git-jot -X [-ab BRANCH] [-r REMOTE]
+git-jot -X [-afb BRANCH] [-r REMOTE]
 git-jot -h
 
 
@@ -98,6 +98,9 @@ Defaults to the currently active branch.
 `-e`::
 Edit the note immediately after importing it.
 This will open an editor, and save the edited version.
+
+`-f`::
+Allow non-fast-forward updates.
 
 `-h`::
 Show help message and exit.
