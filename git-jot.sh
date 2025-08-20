@@ -181,7 +181,7 @@ import_remote_note() { # REMOTE ALLOW_EMPTY EDIT FORCE
 export_note() { # REMOTE ALLOW_EMPTY FORCE
 	[[ -z ${GIT_JOT_EXPORTING:-} ]] || return 0
 
-	local remote="$1" allow_empty="$2"
+	local remote="$1" allow_empty="$2" force="$3"
 	if ! _find_blob >/dev/null; then
 		if (( ! allow_empty )); then
 			fail 'no jottings to export'
@@ -277,7 +277,7 @@ main() { # ...
 		edit) edit_note ;;
 		export)
 			remote="${remote:-$(_default_remote push)}"
-			export_note "$remote" "$allow_empty"
+			export_note "$remote" "$allow_empty" "$force"
 			;;
 		import)
 			if [[ -z $frombranch ]] && [[ -z $remote ]]; then
@@ -286,7 +286,7 @@ main() { # ...
 				fail 'only one of -l and -r can be set'
 			fi
 			if [[ -n $remote ]]; then
-				import_remote_note "$remote" "$allow_empty" "$edit"
+				import_remote_note "$remote" "$allow_empty" "$edit" "$force"
 			else
 				import_local_note "$frombranch" "$allow_empty" "$edit"
 			fi
