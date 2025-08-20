@@ -13,7 +13,7 @@ usage() { # [CODE]
 		Synopsis:
 		  $prog [-Eb BRANCH]
 		  $prog -D [-ab BRANCH]
-		  $prog -I [-aefb BRANCH] [-l BRANCH | -r REMOTE]
+		  $prog -I [-aeb BRANCH] [-l BRANCH | -r REMOTE]
 		  $prog -L
 		  $prog -P
 		  $prog -V [-tb BRANCH]
@@ -34,7 +34,6 @@ usage() { # [CODE]
 		  -a         Do not fail if no note is present.
 		  -b BRANCH  Branch name. Defaults to the current one.
 		  -e         Edit the imported note.
-		  -f         Allow non-fast-forward updates.
 		  -l BRANCH  Local branch to copy the note from.
 		  -r REMOTE  Remote name.
 		  -t         Show notes tree ref instead of contents.
@@ -43,7 +42,8 @@ usage() { # [CODE]
 }
 
 notes_refprefix=refs/notes/jottings
-blobs_refprefix=refs/jottings
+remotenotes_refprefix=refs/jottings/remotes
+blobs_refprefix=refs/jottings/blobs
 
 fail() { # MSG
 	printf 'Error: %s\n' "$1" >&2 && exit 1
@@ -71,7 +71,7 @@ _find_blob() { # [BRANCH]
 _create_blob() { # /
 	local sha
 	sha="$(\
-		printf 'Branch: %s\nInitialized: %s' "$_JOTTINGS_BRANCH" "$(date +'%x %X')" |
+		printf 'Branch: %s' "$_JOTTINGS_BRANCH" |
 			git hash-object -w --stdin
 	)"
 	git update-ref "$blobs_refprefix/$_JOTTINGS_BRANCH" "$sha"
@@ -128,7 +128,7 @@ list_notes() { # /
 }
 
 import_local_note() { # FROMBRANCH ALLOW_EMPTY EDIT FORCE
-	local frombranch="$1" allow_empty="$2" edit="$3" force="$4" fromsha sha
+	local frombranch="$1" allow_empty="$2" edit="$3" fromsha sha
 	if ! fromsha="$(_find_blob "$frombranch")"; then
 		if (( ! allow_empty )); then
 			fail "no jottings to import from $frombranch"
@@ -144,26 +144,26 @@ import_local_note() { # FROMBRANCH ALLOW_EMPTY EDIT FORCE
 		sha="$(_create_blob)"
 	fi
 
-	local opts=()
-	(( ! force )) || opts+=(-f)
 	_git_notes "$frombranch" show "$fromsha" |
 		_git_notes "$_JOTTINGS_BRANCH" add -F - "$sha"
 
-	(( ! edit )) || _git_notes "$_JOTTINGS_BRANCH" edit "${opts[@]}" "$sha"
+	(( ! edit )) || _git_notes "$_JOTTINGS_BRANCH" edit "$sha"
 }
 
 import_remote_note() { # REMOTE ALLOW_EMPTY EDIT FORCE
 	[[ -z ${GIT_JOT_IMPORTING:-} ]] || return 0
 
-	local remote="$1" allow_empty="$2" edit="$3" force="$4" sha
+	local remote="$1" allow_empty="$2" edit="$3" sha
 	printf 'Importing %s jottings from remote %s...\n' \
 		"$_JOTTINGS_BRANCH" "$remote"
 
-	local opts=()
-	(( ! force )) || opts+=(-f)
-	GIT_JOT_IMPORTING=1 git fetch "${opts[@]}" "$remote" \
-			"$notes_refprefix/$_JOTTINGS_BRANCH:$notes_refprefix/$_JOTTINGS_BRANCH" \
+	GIT_JOT_IMPORTING=1 git fetch -f "$remote" \
+			"$notes_refprefix/$_JOTTINGS_BRANCH:$remotenotes_refprefix/$remote/$_JOTTINGS_BRANCH" \
 			"$blobs_refprefix/$_JOTTINGS_BRANCH:$blobs_refprefix/$_JOTTINGS_BRANCH"
+
+	_git_notes "$_JOTTINGS_BRANCH" merge -s union \
+			"$remotenotes_refprefix/$remote/$_JOTTINGS_BRANCH"
+
 	if ! sha="$(_find_blob)"; then
 		if (( ! allow_empty )); then
 			fail 'no remote jottings to import'
@@ -221,11 +221,24 @@ view_note() { # SHOW_TREE /
 	fi
 }
 
+_migrate_refs() {
+	local old_prefix=refs/jottings name ref obj
+	# shellcheck disable=SC2162
+	git for-each-ref --shell \
+			--format='name=%(refname:lstrip=2); ref=%(refname); obj=%(objectname);' \
+			"$old_prefix/*" |
+		while read script; do
+			eval "$script"
+			git update-ref "$blobs_refprefix/$name" "$obj"
+			git update-ref -d "$old_prefix/$name" "$obj"
+		done
+}
+
 main() { # ...
 	local _JOTTINGS_BRANCH='' \
-			allow_empty=0 cmd=edit edit=0 force=0 frombranch='' remote='' \
+			allow_empty=0 cmd=edit edit=0 frombranch='' remote='' \
 			show_tree=0 opt
-	while getopts :DEILPVXab:efhl:r:t opt "$@"; do
+	while getopts :DEILPVXab:ehl:r:t opt "$@"; do
 		case "$opt" in
 			D) cmd=delete ;;
 			E) cmd=edit ;;
@@ -237,7 +250,6 @@ main() { # ...
 			a) allow_empty=1 ;;
 			b) _JOTTINGS_BRANCH="$OPTARG" ;;
 			e) edit=1 ;;
-			f) force=1 ;;
 			h) usage 0 ;;
 			l) frombranch="$OPTARG" ;;
 			r) remote="$OPTARG" ;;
@@ -252,6 +264,7 @@ main() { # ...
 		_JOTTINGS_BRANCH="$(git rev-parse --abbrev-ref HEAD)" # Current branch
 	fi
 
+	_migrate_refs
 	case "$cmd" in
 		delete) delete_note "$allow_empty" ;;
 		edit) edit_note ;;
@@ -266,9 +279,9 @@ main() { # ...
 				fail 'only one of -l and -r can be set'
 			fi
 			if [[ -n $remote ]]; then
-				import_remote_note "$remote" "$allow_empty" "$edit" "$force"
+				import_remote_note "$remote" "$allow_empty" "$edit"
 			else
-				import_local_note "$frombranch" "$allow_empty" "$edit" "$force"
+				import_local_note "$frombranch" "$allow_empty" "$edit"
 			fi
 		;;
 		list) list_notes ;;
