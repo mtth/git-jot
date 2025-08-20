@@ -44,6 +44,7 @@ usage() { # [CODE]
 notes_refprefix=refs/notes/jottings
 remotenotes_refprefix=refs/jottings/remotes
 blobs_refprefix=refs/jottings/blobs
+blobs_remote_refprefix=refs/jottings
 
 fail() { # MSG
 	printf 'Error: %s\n' "$1" >&2 && exit 1
@@ -159,7 +160,7 @@ import_remote_note() { # REMOTE ALLOW_EMPTY EDIT FORCE
 
 	GIT_JOT_IMPORTING=1 git fetch -f "$remote" \
 			"$notes_refprefix/$_JOTTINGS_BRANCH:$remotenotes_refprefix/$remote/$_JOTTINGS_BRANCH" \
-			"$blobs_refprefix/$_JOTTINGS_BRANCH:$blobs_refprefix/$_JOTTINGS_BRANCH"
+			"$blobs_remote_refprefix/$_JOTTINGS_BRANCH:$blobs_refprefix/$_JOTTINGS_BRANCH"
 
 	_git_notes "$_JOTTINGS_BRANCH" merge -s union \
 			"$remotenotes_refprefix/$remote/$_JOTTINGS_BRANCH"
@@ -189,7 +190,7 @@ export_note() { # REMOTE ALLOW_EMPTY
 	printf 'Exporting %s jottings to remote %s...\n' "$_JOTTINGS_BRANCH" "$remote"
 	GIT_JOT_EXPORTING=1 git push "$remote" \
 			"$notes_refprefix/$_JOTTINGS_BRANCH:$notes_refprefix/$_JOTTINGS_BRANCH" \
-			"$blobs_refprefix/$_JOTTINGS_BRANCH:$blobs_refprefix/$_JOTTINGS_BRANCH"
+			"$blobs_refprefix/$_JOTTINGS_BRANCH:$blobs_remote_refprefix/$_JOTTINGS_BRANCH"
 }
 
 prune_notes() { # /
@@ -222,15 +223,15 @@ view_note() { # SHOW_TREE /
 }
 
 _migrate_refs() {
-	local old_prefix=refs/jottings name ref obj
+	local name ref obj
 	# shellcheck disable=SC2162
 	git for-each-ref --shell \
 			--format='name=%(refname:lstrip=2); ref=%(refname); obj=%(objectname);' \
-			"$old_prefix/*" |
+			"$blobs_remote_refprefix/*" |
 		while read script; do
 			eval "$script"
 			git update-ref "$blobs_refprefix/$name" "$obj"
-			git update-ref -d "$old_prefix/$name" "$obj"
+			git update-ref -d "$blobs_remote_refprefix/$name" "$obj"
 		done
 }
 
