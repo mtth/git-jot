@@ -35,6 +35,7 @@ usage() { # [CODE]
 		  -b BRANCH  Branch name. Defaults to the current one.
 		  -e         Edit the imported note.
 		  -l BRANCH  Local branch to copy the note from.
+		  -q         Be more quiet.
 		  -r REMOTE  Remote name.
 		  -t         Show notes tree ref instead of contents.
 	EOF
@@ -48,6 +49,10 @@ blobs_remote_refprefix=refs/jottings
 
 fail() { # MSG
 	printf 'Error: %s\n' "$1" >&2 && exit 1
+}
+
+tell() { # ...
+	(( _QUIET )) || printf "$@"
 }
 
 _default_remote() { # KEY
@@ -90,12 +95,12 @@ delete_note() { # ALLOW_EMPTY
 		if (( ! allow_empty )); then
 			fail 'no jottings to delete'
 		fi
-		printf 'No %s jottings to delete.\n' "$_JOTTINGS_BRANCH"
+		tell 'No %s jottings to delete.\n' "$_JOTTINGS_BRANCH"
 		return
 	fi
 	_git_notes "$_JOTTINGS_BRANCH" remove "$sha" 2>/dev/null
 	_delete_blob "$sha"
-	printf 'Deleted %s jottings.\n' "$_JOTTINGS_BRANCH"
+	tell 'Deleted %s jottings.\n' "$_JOTTINGS_BRANCH"
 }
 
 edit_note() { # /
@@ -111,15 +116,15 @@ edit_note() { # /
 	if [[ -z $(_git_notes "$_JOTTINGS_BRANCH" show "$sha") ]]; then
 		_delete_blob "$sha"
 		if (( has_note )); then
-			printf 'Deleted %s jottings.\n' "$_JOTTINGS_BRANCH"
+			tell 'Deleted %s jottings.\n' "$_JOTTINGS_BRANCH"
 		else
-			printf 'Skipped empty jottings creation.\n'
+			tell 'Skipped empty jottings creation.\n'
 		fi
 	else
 		if (( has_note )); then
-			printf 'Updated %s jottings.\n' "$_JOTTINGS_BRANCH"
+			tell 'Updated %s jottings.\n' "$_JOTTINGS_BRANCH"
 		else
-			printf 'Created %s jottings.\n' "$_JOTTINGS_BRANCH"
+			tell 'Created %s jottings.\n' "$_JOTTINGS_BRANCH"
 		fi
 	fi
 }
@@ -134,10 +139,10 @@ import_local_note() { # FROMBRANCH ALLOW_EMPTY EDIT
 		if (( ! allow_empty )); then
 			fail "no jottings to import from $frombranch"
 		fi
-		printf 'No jottings to import from %s.\n' "$frombranch"
+		tell 'No jottings to import from %s.\n' "$frombranch"
 		return
 	fi
-	printf 'Importing %s jottings from branch %s...\n' \
+	tell 'Importing %s jottings from branch %s...\n' \
 		"$_JOTTINGS_BRANCH" "$frombranch"
 
 	local sha
@@ -155,7 +160,7 @@ import_remote_note() { # REMOTE ALLOW_EMPTY EDIT FORCE
 	[[ -z ${GIT_JOT_IMPORTING:-} ]] || return 0
 
 	local remote="$1" allow_empty="$2" edit="$3" sha
-	printf 'Importing %s jottings from remote %s...\n' \
+	tell 'Importing %s jottings from remote %s...\n' \
 		"$_JOTTINGS_BRANCH" "$remote"
 
 	local opts=()
@@ -171,7 +176,7 @@ import_remote_note() { # REMOTE ALLOW_EMPTY EDIT FORCE
 		if (( ! allow_empty )); then
 			fail 'no remote jottings to import'
 		fi
-		printf 'No jottings imported.\n'
+		tell 'No jottings imported.\n'
 		return
 	fi
 
@@ -186,10 +191,10 @@ export_note() { # REMOTE ALLOW_EMPTY FORCE
 		if (( ! allow_empty )); then
 			fail 'no jottings to export'
 		fi
-		printf 'No %s jottings, skipping export.\n' "$_JOTTINGS_BRANCH"
+		tell 'No %s jottings, skipping export.\n' "$_JOTTINGS_BRANCH"
 		return
 	fi
-	printf 'Exporting %s jottings to remote %s...\n' "$_JOTTINGS_BRANCH" "$remote"
+	tell 'Exporting %s jottings to remote %s...\n' "$_JOTTINGS_BRANCH" "$remote"
 
 	local opts=()
 	(( ! force )) || opts+=(-f)
@@ -199,7 +204,7 @@ export_note() { # REMOTE ALLOW_EMPTY FORCE
 }
 
 prune_notes() { # /
-	printf 'Pruning jottings...\n'
+	tell 'Pruning jottings...\n'
 	local script name ref
 	# shellcheck disable=SC2162
 	git for-each-ref --shell \
@@ -210,7 +215,7 @@ prune_notes() { # /
 			if ! git rev-parse --verify --quiet "$name"; then
 				git update-ref -d "$ref"
 				_git_notes "$name" prune -v
-				printf 'Pruned %s jottings.\n' "$name"
+				tell 'Pruned %s jottings.\n' "$name"
 			fi
 		done
 }
@@ -241,10 +246,10 @@ _migrate_refs() {
 }
 
 main() { # ...
-	local _JOTTINGS_BRANCH='' \
+	local _JOTTINGS_BRANCH='' _QUIET=0 \
 			allow_empty=0 cmd=edit edit=0 force=0 frombranch='' remote='' \
 			show_tree=0 opt
-	while getopts :DEILPVXab:efhl:r:t opt "$@"; do
+	while getopts :DEILPVXab:efhl:qr:t opt "$@"; do
 		case "$opt" in
 			D) cmd=delete ;;
 			E) cmd=edit ;;
@@ -259,6 +264,7 @@ main() { # ...
 			f) force=1 ;;
 			h) usage 0 ;;
 			l) frombranch="$OPTARG" ;;
+			q) _QUIET=1 ;;
 			r) remote="$OPTARG" ;;
 			t) show_tree=1 ;;
 			*) fail "unknown option: $OPTARG" ;;
