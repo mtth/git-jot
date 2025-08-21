@@ -58,7 +58,7 @@ tell() { # ...
 _default_remote() { # KEY
 	# https://stackoverflow.com/a/78260478
 	local key="$1" remote
-	remote="$(git for-each-ref --format="%($key:remotename)" "$_JOTTINGS_BRANCH")"
+	remote="$(git for-each-ref --format="%($key:remotename)" "$_BRANCH")"
 	printf '%s' "${remote:-origin}"
 }
 
@@ -69,7 +69,7 @@ _git_notes() { # BRANCH ...
 }
 
 _find_blob() { # [BRANCH]
-	local branch="${1:-$_JOTTINGS_BRANCH}" sha
+	local branch="${1:-$_BRANCH}" sha
 	sha="$(git rev-parse --verify --quiet "$blobs_refprefix/$branch^{blob}")"
 	[[ -n $sha ]] && printf '%s' "$sha"
 }
@@ -77,16 +77,16 @@ _find_blob() { # [BRANCH]
 _create_blob() { # /
 	local sha
 	sha="$(\
-		printf 'Branch: %s' "$_JOTTINGS_BRANCH" |
+		printf 'Branch: %s' "$_BRANCH" |
 			git hash-object -w --stdin
 	)"
-	git update-ref "$blobs_refprefix/$_JOTTINGS_BRANCH" "$sha"
+	git update-ref "$blobs_refprefix/$_BRANCH" "$sha"
 	printf '%s' "$sha"
 }
 
 _delete_blob() { # SHA
 		local sha="$1"
-		git update-ref -d "$blobs_refprefix/$_JOTTINGS_BRANCH" "$sha"
+		git update-ref -d "$blobs_refprefix/$_BRANCH" "$sha"
 }
 
 delete_note() { # ALLOW_EMPTY
@@ -95,12 +95,12 @@ delete_note() { # ALLOW_EMPTY
 		if (( ! allow_empty )); then
 			fail 'no jottings to delete'
 		fi
-		tell 'No %s jottings to delete.\n' "$_JOTTINGS_BRANCH"
+		tell 'No %s jottings to delete.\n' "$_BRANCH"
 		return
 	fi
-	_git_notes "$_JOTTINGS_BRANCH" remove "$sha" 2>/dev/null
+	_git_notes "$_BRANCH" remove "$sha" 2>/dev/null
 	_delete_blob "$sha"
-	tell 'Deleted %s jottings.\n' "$_JOTTINGS_BRANCH"
+	tell 'Deleted %s jottings.\n' "$_BRANCH"
 }
 
 edit_note() { # /
@@ -110,21 +110,21 @@ edit_note() { # /
 		sha="$(_create_blob)"
 	fi
 
-	_git_notes "$_JOTTINGS_BRANCH" edit --allow-empty "$sha"
+	_git_notes "$_BRANCH" edit --allow-empty "$sha"
 
 	# TODO: Find a more efficient way to detect the case when the note is empty.
-	if [[ -z $(_git_notes "$_JOTTINGS_BRANCH" show "$sha") ]]; then
+	if [[ -z $(_git_notes "$_BRANCH" show "$sha") ]]; then
 		_delete_blob "$sha"
 		if (( has_note )); then
-			tell 'Deleted %s jottings.\n' "$_JOTTINGS_BRANCH"
+			tell 'Deleted %s jottings.\n' "$_BRANCH"
 		else
 			tell 'Skipped empty jottings creation.\n'
 		fi
 	else
 		if (( has_note )); then
-			tell 'Updated %s jottings.\n' "$_JOTTINGS_BRANCH"
+			tell 'Updated %s jottings.\n' "$_BRANCH"
 		else
-			tell 'Created %s jottings.\n' "$_JOTTINGS_BRANCH"
+			tell 'Created %s jottings.\n' "$_BRANCH"
 		fi
 	fi
 }
@@ -143,7 +143,7 @@ import_local_note() { # FROMBRANCH ALLOW_EMPTY EDIT
 		return
 	fi
 	tell 'Importing %s jottings from branch %s...\n' \
-		"$_JOTTINGS_BRANCH" "$frombranch"
+		"$_BRANCH" "$frombranch"
 
 	local sha
 	if ! sha="$(_find_blob)"; then
@@ -151,9 +151,9 @@ import_local_note() { # FROMBRANCH ALLOW_EMPTY EDIT
 	fi
 
 	_git_notes "$frombranch" show "$fromsha" |
-		_git_notes "$_JOTTINGS_BRANCH" add -F - "$sha"
+		_git_notes "$_BRANCH" add -F - "$sha"
 
-	(( ! edit )) || _git_notes "$_JOTTINGS_BRANCH" edit "$sha"
+	(( ! edit )) || _git_notes "$_BRANCH" edit "$sha"
 }
 
 import_remote_note() { # REMOTE ALLOW_EMPTY EDIT FORCE
@@ -161,16 +161,16 @@ import_remote_note() { # REMOTE ALLOW_EMPTY EDIT FORCE
 
 	local remote="$1" allow_empty="$2" edit="$3" sha
 	tell 'Importing %s jottings from remote %s...\n' \
-		"$_JOTTINGS_BRANCH" "$remote"
+		"$_BRANCH" "$remote"
 
 	local opts=()
 	(( ! force )) || opts+=(-f)
 	GIT_JOT_IMPORTING=1 git fetch "${opts[@]}" "$remote" \
-			"$notes_refprefix/$_JOTTINGS_BRANCH:$remotenotes_refprefix/$remote/$_JOTTINGS_BRANCH" \
-			"$blobs_remote_refprefix/$_JOTTINGS_BRANCH:$blobs_refprefix/$_JOTTINGS_BRANCH"
+			"$notes_refprefix/$_BRANCH:$remotenotes_refprefix/$remote/$_BRANCH" \
+			"$blobs_remote_refprefix/$_BRANCH:$blobs_refprefix/$_BRANCH"
 
-	_git_notes "$_JOTTINGS_BRANCH" merge -s union \
-			"$remotenotes_refprefix/$remote/$_JOTTINGS_BRANCH"
+	_git_notes "$_BRANCH" merge -s union \
+			"$remotenotes_refprefix/$remote/$_BRANCH"
 
 	if ! sha="$(_find_blob)"; then
 		if (( ! allow_empty )); then
@@ -180,7 +180,7 @@ import_remote_note() { # REMOTE ALLOW_EMPTY EDIT FORCE
 		return
 	fi
 
-	(( ! edit )) || _git_notes "$_JOTTINGS_BRANCH" edit "$sha"
+	(( ! edit )) || _git_notes "$_BRANCH" edit "$sha"
 }
 
 export_note() { # REMOTE ALLOW_EMPTY FORCE
@@ -191,16 +191,16 @@ export_note() { # REMOTE ALLOW_EMPTY FORCE
 		if (( ! allow_empty )); then
 			fail 'no jottings to export'
 		fi
-		tell 'No %s jottings, skipping export.\n' "$_JOTTINGS_BRANCH"
+		tell 'No %s jottings, skipping export.\n' "$_BRANCH"
 		return
 	fi
-	tell 'Exporting %s jottings to remote %s...\n' "$_JOTTINGS_BRANCH" "$remote"
+	tell 'Exporting %s jottings to remote %s...\n' "$_BRANCH" "$remote"
 
 	local opts=()
 	(( ! force )) || opts+=(-f)
 	GIT_JOT_EXPORTING=1 git push "${opts[@]}" "$remote" \
-			"$notes_refprefix/$_JOTTINGS_BRANCH:$notes_refprefix/$_JOTTINGS_BRANCH" \
-			"$blobs_refprefix/$_JOTTINGS_BRANCH:$blobs_remote_refprefix/$_JOTTINGS_BRANCH"
+			"$notes_refprefix/$_BRANCH:$notes_refprefix/$_BRANCH" \
+			"$blobs_refprefix/$_BRANCH:$blobs_remote_refprefix/$_BRANCH"
 }
 
 prune_notes() { # /
@@ -226,9 +226,9 @@ view_note() { # SHOW_TREE /
 		fail 'no jottings to show'
 	fi
 	if (( show_tree )); then
-		printf '%s\n' "$notes_refprefix/$_JOTTINGS_BRANCH"
+		printf '%s\n' "$notes_refprefix/$_BRANCH"
 	else
-		_git_notes "$_JOTTINGS_BRANCH" show "$sha"
+		_git_notes "$_BRANCH" show "$sha"
 	fi
 }
 
@@ -246,7 +246,7 @@ _migrate_refs() {
 }
 
 main() { # ...
-	local _JOTTINGS_BRANCH='' _QUIET=0 \
+	local _BRANCH='' _QUIET=0 \
 			allow_empty=0 cmd=edit edit=0 force=0 frombranch='' remote='' \
 			show_tree=0 opt
 	while getopts :DEILPVXab:efhl:qr:t opt "$@"; do
@@ -259,7 +259,7 @@ main() { # ...
 			V) cmd=view ;;
 			X) cmd='export' ;;
 			a) allow_empty=1 ;;
-			b) _JOTTINGS_BRANCH="$OPTARG" ;;
+			b) _BRANCH="$OPTARG" ;;
 			e) edit=1 ;;
 			f) force=1 ;;
 			h) usage 0 ;;
@@ -273,8 +273,8 @@ main() { # ...
 	shift $(( OPTIND-1 ))
 	(( $# == 0 )) || fail 'trailing arguments'
 
-	if [[ -z $_JOTTINGS_BRANCH ]]; then
-		_JOTTINGS_BRANCH="$(git rev-parse --abbrev-ref HEAD)" # Current branch
+	if [[ -z $_BRANCH ]]; then
+		_BRANCH="$(git rev-parse --abbrev-ref HEAD)" # Current branch
 	fi
 
 	_migrate_refs
