@@ -52,6 +52,7 @@ fail() { # MSG
 }
 
 tell() { # ...
+	# shellcheck disable=SC2059
 	(( _QUIET )) || printf "$@"
 }
 
