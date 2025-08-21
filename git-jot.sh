@@ -125,7 +125,7 @@ edit_note() { # /
 }
 
 list_notes() { # /
-	git for-each-ref --format='%(refname:lstrip=2)' "$blobs_refprefix"
+	git for-each-ref --format='%(refname:lstrip=3)' "$blobs_refprefix"
 }
 
 import_local_note() { # FROMBRANCH ALLOW_EMPTY EDIT
@@ -203,7 +203,7 @@ prune_notes() { # /
 	local script name ref
 	# shellcheck disable=SC2162
 	git for-each-ref --shell \
-			--format='name=%(refname:lstrip=2); ref=%(refname);' \
+			--format='name=%(refname:lstrip=3); ref=%(refname);' \
 			"$blobs_refprefix" |
 		while read script; do
 			eval "$script"
