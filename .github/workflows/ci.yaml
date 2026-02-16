@@ -23,15 +23,13 @@ jobs:
     permissions:
       contents: write
     outputs:
-      new-version: ${{ steps.bump-version.outputs.new_version }}
+      new-version: ${{ steps.bump-version.outputs.new-version }}
     steps:
       - name: Check out
         uses: actions/checkout@v4
       - name: Bump version and create tag
         id: bump-version
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        uses: mtth/bump-version-action@v1
   build-pages:
     name: Build GitHub Pages
     timeout-minutes: 5
