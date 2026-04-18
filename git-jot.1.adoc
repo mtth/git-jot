@@ -85,6 +85,7 @@ This is the default command.
 Import jottings from another local branch or a remote.
 If neither `-l` nor `-r` is specified, the branch's upstream will be used as source.
 All source jottings are imported.
+Local imports copy jottings when the source branch still exists, and move them when it does not.
 
 `-L`::
 List all local jottings in `BRANCH`, `NAME`, and `UPDATED` columns, sorted by most recent update.
