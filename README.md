@@ -26,10 +26,12 @@ your `$PATH`, then making it executable.
 $ git jot # Open an editor to add notes to the current branch
 $ # Do some work, add some commits, rebase, etc...
 $ git jot # View and edit the existing branch note
+$ git jot -n review # Edit a second jotting on the same branch
 $ git switch other-branch
 $ git jot # Edit a different branch note
 $ git switch original-branch
 $ git jot -V # View the original branch's note
+$ git jot -V -n review # View the original branch's review jotting
 $ git jot -X # Push the branch's note to its default remote
 ```
 
