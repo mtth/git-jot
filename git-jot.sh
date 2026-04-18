@@ -131,6 +131,12 @@ _list_names() { # BRANCH
 		done
 }
 
+_updated_at() { # BRANCH SHA
+	local branch="$1" sha="$2" updated
+	updated="$(git log -1 --format='%ct%x09%cr' "$notes_refprefix/$branch" -- "$sha")"
+	printf '%s\n' "${updated:-0	-}"
+}
+
 _legacy_migrate_notes() {
 	local branch ref obj script
 	# shellcheck disable=SC2162
@@ -247,20 +253,30 @@ edit_note() { # /
 }
 
 list_notes() { # /
-	local ref path branch
+	local ref path branch sha updated updated_epoch updated_display
 	if (( OPT_branch_set )); then
 		_list_names "$OPT_branch"
 		return
 	fi
 	{
-		printf 'BRANCH\tNAME\n'
-		_list_blob_refs |
-			while read -r ref; do
-				path="${ref#"$blobs_refprefix/"}"
-				branch="${path%/*}"
-				printf '%s\t%s\n' "$branch" "${path##*/}"
-			done
-	} | column -t -s $'\t'
+		printf 'BRANCH\tNAME\tUPDATED\n'
+		{
+			_list_blob_refs |
+				while read -r ref; do
+					path="${ref#"$blobs_refprefix/"}"
+					branch="${path%/*}"
+					sha="$(git rev-parse --verify "$ref^{blob}")"
+					updated="$(_updated_at "$branch" "$sha")"
+					updated_epoch="${updated%%	*}"
+					updated_display="${updated#*	}"
+					printf '%s\t%s\t%s\t%s\n' \
+						"$updated_epoch" "$branch" "${path##*/}" "$updated_display"
+				done |
+				sort -rn -k1,1 |
+				cut -f2-
+		}
+	} |
+		column -t -s $'\t'
 }
 
 _import_one_local_note() { # FROMBRANCH NAME
