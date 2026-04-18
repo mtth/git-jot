@@ -16,12 +16,12 @@ git-jot - emulate branch-local notes
 == Synopsis
 
 [verse]
-git-jot [-Eb BRANCH]
-git-jot -D [-ab BRANCH]
-git-jot -I [-aeb BRANCH] [-l BRANCH | -fr REMOTE]
-git-jot -L
+git-jot [-Eb BRANCH] [-n NAME]
+git-jot -D [-ab BRANCH] [-n NAME]
+git-jot -I [-ab BRANCH] [-l BRANCH | -fr REMOTE]
+git-jot -L [-b BRANCH]
 git-jot -P
-git-jot -V [-tb BRANCH]
+git-jot -V [-tb BRANCH] [-n NAME]
 git-jot -X [-afb BRANCH] [-r REMOTE]
 git-jot -h
 
@@ -32,8 +32,10 @@ git-jot -h
 It is particularly useful for https://git-scm.com/book/en/v2/Git-Branching-Branching-Workflows[branching workflows], allowing the user to add context to the feature under development.
 Since it uses regular notes under the hood, they can be easily shared, unlike approaches based on branch descriptions.
 These notes are tied to the branch's name, and will persist as commits get added, merged, rebased, etc.
+Each branch can have multiple named jottings.
+When no name is provided, `git-jot` operates on the `default` jotting for the branch.
 
-Its workhorse command is `git jot` (short for `git jot -E`), which edits a note specific to the current branch.
+Its workhorse command is `git jot` (short for `git jot -E`), which edits the default jotting for the current branch.
 A typical development workflow looks like:
 
 [source,console]
@@ -42,6 +44,7 @@ $ # Create a feature branch...
 $ git jot # Open an editor to add notes to this feature branch
 $ # Do some work: add commits, rebase, switch to another branch and back...
 $ git jot # Update the previously created note
+$ git jot -n review # Add a separate review jotting
 $ # And so on...
 ----
 
@@ -70,45 +73,44 @@ This can be made even more convenient by introducing a few aliases, for example:
 == Options
 
 `-D`::
-Delete branch notes.
+Delete a branch jotting.
 See also `-P` to remove notes corresponding to deleted branches.
 
 `-E`::
-Edit or create branch notes.
+Edit or create a branch jotting.
 It will open an interactive editor, similar to `git-notes edit`.
 This is the default command.
 
 `-I`::
-Import notes from another local branch or a remote.
+Import jottings from another local branch or a remote.
 If neither `-l` nor `-r` is specified, the branch's upstream will be used as source.
+All source jottings are imported.
 
 `-L`::
-List all local branches with notes.
+List all local jottings in `BRANCH` and `NAME` columns.
+With `-b`, list jotting names for that branch.
 
 `-P`::
 Prune notes matching deleted branches.
 
 `-X`::
-Export branch notes.
+Export branch jottings.
+All branch jottings are exported.
 If `-r` is not specified, the branch's default `push` remote will be used as target.
 This command can be run within a `pre-push` hook to ensure the remote contains the latest version of the notes.
 
 `-V`::
-View branch notes.
+View a branch jotting.
 Its contents are printed to stdout.
 
 `-a`::
-Return with a 0 exit code when no branch note was found.
-By default deleting, exporting, or importing will fail if no branch note is found.
+Return with a 0 exit code when no matching jotting was found.
+By default deleting, exporting, or importing will fail if no matching jotting is found.
 This can be useful for example to export notes from a hook.
 
 `-b BRANCH`::
 Name of the underlying branch.
 Defaults to the currently active branch.
-
-`-e`::
-Edit the note immediately after importing it.
-This will open an editor, and save the edited version.
 
 `-f`::
 Allow non-fast-forward updates.
@@ -117,29 +119,35 @@ Allow non-fast-forward updates.
 Show help message and exit.
 
 `-l BRANCH`::
-Name of the local branch to import the note from.
-This will overwrite the current note's contents, if any.
+Name of the local branch to import jottings from.
+This will overwrite matching jotting contents, if any.
+
+`-n NAME`::
+Name of the jotting to edit, delete, or view.
+Defaults to `default`.
+Names must be a single ref-safe path component and cannot contain `/`.
 
 `-r REMOTE`::
-Name of the remote to import the note from.
+Name of the remote to import jottings from.
 The remote's branch name is assumed identical to the local target branch.
-The current note's contents will be merged with the imported one, using the union strategy in case of any conflicts.
+The current notes ref will be merged with the imported one, using the union strategy in case of any conflicts.
 
 `-t`::
 Show notes tree ref instead of contents.
-This can be used to perform operations on the underlying notes, for example to view the branch note's history via `git log -p "$(git jot -Vt)"`.
+This can be used to perform operations on the underlying notes, for example to view the branch jotting history via `git log -p "$(git jot -Vt)"`.
 
 
 == Implementation
 
-Under the hood, `git-jot` performs the following actions to emulate a branch-local note:
+Under the hood, `git-jot` performs the following actions to emulate branch-local jottings:
 
-1. It creates a blob object unique to the target branch,
-2. It adds a reference to it of the form `refs/jottings/blobs/$branch_name` to access it later on,
-3. It attaches all branch notes to the above object using a dedicated notes `ref` (`refs/notes/jottings/$branch_name`).
+1. It creates a blob object unique to the target branch and jotting name,
+2. It adds a reference to it of the form `refs/jottings/v1/blobs/$branch_name/$jotting_name` to access it later on,
+3. It attaches all branch jottings to the above objects using a dedicated notes `ref` (`refs/notes/jottings/v1/$branch_name`).
 
-Imported remote notes are namespaced by remote name (`refs/jottings/remotes/$remote/`).
-Exported blobs are stored directly as `refs/jottings/$branch_name` in the remote.
+Imported remote notes are namespaced by remote name (`refs/jottings/v1/remotes/$remote/notes/`).
+Legacy refs from earlier versions are migrated into the v1 namespace automatically.
+After v1 refs are written, older `git-jot` versions must be upgraded to see the updated jottings.
 
 
 == See also
