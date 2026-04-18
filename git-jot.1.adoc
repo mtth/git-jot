@@ -87,7 +87,7 @@ If neither `-l` nor `-r` is specified, the branch's upstream will be used as sou
 All source jottings are imported.
 
 `-L`::
-List all local jottings in `BRANCH` and `NAME` columns.
+List all local jottings in `BRANCH`, `NAME`, and `UPDATED` columns, sorted by most recent update.
 With `-b`, list jotting names for that branch.
 
 `-P`::
