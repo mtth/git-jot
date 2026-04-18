@@ -301,10 +301,14 @@ import_local_note() { # /
 		tell 'No jottings to import from %s.\n' "$OPT_frombranch"
 		return
 	fi
-	tell 'Importing %s jottings from branch %s...\n' "$OPT_branch" "$OPT_frombranch"
 	for name in "${names[@]}"; do
 		_import_one_local_note "$OPT_frombranch" "$name"
 	done
+	if _prune_branch_jottings_if_missing "$OPT_frombranch"; then
+		tell 'Moved %s jottings from %s.\n' "$OPT_branch" "$OPT_frombranch"
+	else
+		tell 'Copied %s jottings from %s.\n' "$OPT_branch" "$OPT_frombranch"
+	fi
 }
 
 _remote_refs() { # REMOTE BRANCH
@@ -385,27 +389,47 @@ export_note() { # /
 	GIT_JOT_EXPORTING=1 git push "${opts[@]}" "$OPT_remote" "${refspecs[@]}"
 }
 
+_prune_branch_jottings_if_missing() { # BRANCH
+	local branch="$1"
+	local deleted=0 ref path sha obj
+	if git rev-parse --verify --quiet "$branch" >/dev/null; then
+		return 1
+	fi
+	while read -r ref; do
+		path="${ref#"$blobs_refprefix/"}"
+		branch="${path%/*}"
+		sha="$(git rev-parse --verify "$ref^{blob}")"
+		git update-ref -d "$ref" "$sha"
+		_git_notes "$branch" remove "$sha" 2>/dev/null || true
+		deleted=1
+	done < <(_list_blob_refs "$branch")
+	ref="$notes_refprefix/$branch"
+	if git rev-parse --verify --quiet "$ref" >/dev/null; then
+		obj="$(git rev-parse --verify "$ref")"
+		git update-ref -d "$ref" "$obj"
+		deleted=1
+	fi
+	(( deleted ))
+}
+
 prune_notes() { # /
 	tell 'Pruning jottings...\n'
-	local ref path branch name sha obj
-	_list_blob_refs |
+	local branch branches=() ref path
+	while read -r ref; do
+		path="${ref#"$blobs_refprefix/"}"
+		branch="${path%/*}"
+		branches+=("$branch")
+	done < <(_list_blob_refs)
+	while read -r ref; do
+		branch="${ref#"$notes_refprefix/"}"
+		branches+=("$branch")
+	done < <(git for-each-ref --format='%(refname)' "$notes_refprefix")
+	printf '%s\n' "${branches[@]}" |
+		sort -u |
 		while read -r ref; do
-			path="${ref#"$blobs_refprefix/"}"
-			branch="${path%/*}"
-			name="${path##*/}"
-			if ! git rev-parse --verify --quiet "$branch" >/dev/null; then
-				sha="$(git rev-parse --verify "$ref^{blob}")"
-				git update-ref -d "$ref" "$sha"
-				_git_notes "$branch" remove "$sha" 2>/dev/null || true
-				tell 'Pruned %s/%s jottings.\n' "$branch" "$name"
-			fi
-		done
-	git for-each-ref --format='%(refname)' "$notes_refprefix" |
-		while read -r ref; do
-			branch="${ref#"$notes_refprefix/"}"
-			if ! git rev-parse --verify --quiet "$branch" >/dev/null; then
-				obj="$(git rev-parse --verify "$ref")"
-				git update-ref -d "$ref" "$obj"
+			[[ -n $ref ]] || continue
+			if _prune_branch_jottings_if_missing "$ref"; then
+				tell 'Pruned %s jottings.\n' "$ref"
 			fi
 		done
 }
