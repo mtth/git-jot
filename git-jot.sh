@@ -16,18 +16,20 @@ usage() { # [CODE]
 		  $prog -I [-ab BRANCH] [-l BRANCH | -fr REMOTE]
 		  $prog -L [-b BRANCH]
 		  $prog -P
-		  $prog -V [-tb BRANCH] [-n NAME]
+		  $prog -R [-tb BRANCH] [-n NAME]
+		  $prog -W [-b BRANCH] [-n NAME] PATH
 		  $prog -X [-afb BRANCH] [-r REMOTE]
 		  $prog -h
 
-		Operations:
+		Commands:
 		  -D  Delete branch jotting.
 		  -E  Edit branch jotting. This is the default command.
 		  -I  Import jottings from another branch, defaulting to upstream.
 		  -L  List branches or jotting names.
 		  -P  Prune jottings matching deleted branches.
+		  -R  Read branch jotting.
+		  -W  Write branch jotting from file or stdin (set PATH to -).
 		  -X  Export branch jottings.
-		  -V  View branch jotting.
 		  -h  Show help and exit.
 
 		Options:
@@ -434,7 +436,7 @@ prune_notes() { # /
 		done
 }
 
-view_note() { # /
+read_note() { # /
 	local sha
 	if ! sha="$(_find_blob)"; then
 		fail 'no jottings to show'
@@ -446,18 +448,43 @@ view_note() { # /
 	fi
 }
 
+write_note() { # PATH /
+	local path="$1" has_note=1 sha err
+	if [[ $path != - && ! -r $path ]]; then
+		fail "cannot read path: $path"
+	fi
+	if ! sha="$(_find_blob)"; then
+		has_note=0
+		sha="$(_create_blob)"
+	fi
+	if ! err="$(
+		_git_notes "$OPT_branch" add \
+			--allow-empty --no-stripspace -f -F "$path" "$sha" 2>&1
+	)"; then
+		(( has_note )) || _delete_blob "$sha"
+		[[ -z $err ]] || printf '%s\n' "$err" >&2
+		return 1
+	fi
+	if (( has_note )); then
+		tell 'Updated %s/%s jottings.\n' "$OPT_branch" "$OPT_name"
+	else
+		tell 'Created %s/%s jottings.\n' "$OPT_branch" "$OPT_name"
+	fi
+}
+
 main() { # ...
 	local cmd=EDIT OPT_allow_empty=0 OPT_branch='' OPT_branch_set=0 \
 			OPT_force=0 OPT_frombranch='' OPT_name="$default_name" \
 			OPT_quiet=0 OPT_remote='' OPT_show_tree=0 opt
-	while getopts :DEILPVXab:fhl:n:qr:t opt "$@"; do
+	while getopts :DEILPRWXab:fhl:n:qr:t opt "$@"; do
 		case "$opt" in
 			D) cmd=DELETE ;;
 			E) cmd=EDIT ;;
 			I) cmd=IMPORT ;;
 			L) cmd=LIST ;;
 			P) cmd=PRUNE ;;
-			V) cmd=VIEW ;;
+			R) cmd=READ ;;
+			W) cmd=WRITE ;;
 			X) cmd=EXPORT ;;
 			a) OPT_allow_empty=1 ;;
 			b) OPT_branch="$OPTARG"; OPT_branch_set=1 ;;
@@ -468,11 +495,16 @@ main() { # ...
 			q) OPT_quiet=1 ;;
 			r) OPT_remote="$OPTARG" ;;
 			t) OPT_show_tree=1 ;;
+			:) fail "option requires an argument: $OPTARG" ;;
 			*) fail "unknown option: $OPTARG" ;;
 		esac
 	done
 	shift $(( OPTIND-1 ))
-	(( $# == 0 )) || fail 'trailing arguments'
+
+	case "$cmd" in
+		WRITE) (( $# == 1 )) || fail 'write requires exactly one PATH argument' ;;
+		*) (( $# == 0 )) || fail 'trailing arguments' ;;
+	esac
 
 	_check_name "$OPT_name"
 	if [[ -z $OPT_branch && $cmd != LIST ]]; then
@@ -506,7 +538,8 @@ main() { # ...
 		;;
 		LIST) list_notes ;;
 		PRUNE) prune_notes ;;
-		VIEW) view_note ;;
+		READ) read_note ;;
+		WRITE) write_note "$1" ;;
 	esac
 }
 

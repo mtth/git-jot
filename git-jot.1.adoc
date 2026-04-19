@@ -21,7 +21,8 @@ git-jot -D [-ab BRANCH] [-n NAME]
 git-jot -I [-ab BRANCH] [-l BRANCH | -fr REMOTE]
 git-jot -L [-b BRANCH]
 git-jot -P
-git-jot -V [-tb BRANCH] [-n NAME]
+git-jot -R [-tb BRANCH] [-n NAME]
+git-jot -W [-b BRANCH] [-n NAME] PATH
 git-jot -X [-afb BRANCH] [-r REMOTE]
 git-jot -h
 
@@ -100,9 +101,13 @@ All branch jottings are exported.
 If `-r` is not specified, the branch's default `push` remote will be used as target.
 This command can be run within a `pre-push` hook to ensure the remote contains the latest version of the notes.
 
-`-V`::
-View a branch jotting.
+`-R`::
+Read a branch jotting.
 Its contents are printed to stdout.
+
+`-W`::
+Write a branch jotting from `PATH`.
+If `PATH` is `-`, contents are read from stdin.
 
 `-a`::
 Return with a 0 exit code when no matching jotting was found.
@@ -124,7 +129,7 @@ Name of the local branch to import jottings from.
 This will overwrite matching jotting contents, if any.
 
 `-n NAME`::
-Name of the jotting to edit, delete, or view.
+Name of the jotting to edit, delete, read, or write.
 Defaults to `default`.
 Names must be a single ref-safe path component and cannot contain `/`.
 
@@ -135,7 +140,7 @@ The current notes ref will be merged with the imported one, using the union stra
 
 `-t`::
 Show notes tree ref instead of contents.
-This can be used to perform operations on the underlying notes, for example to view the branch jotting history via `git log -p "$(git jot -Vt)"`.
+This can be used to perform operations on the underlying notes, for example to view branch jottings history via `git log -p "$(git jot -Rt)"`.
 
 
 == Implementation
