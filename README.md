@@ -30,8 +30,8 @@ $ git jot -n review # Edit a second jotting on the same branch
 $ git switch other-branch
 $ git jot # Edit a different branch note
 $ git switch original-branch
-$ git jot -V # View the original branch's note
-$ git jot -V -n review # View the original branch's review jotting
+$ git jot -R # Read the original branch's note
+$ git jot -R -n review # Read the original branch's review jotting
 $ git jot -X # Push the branch's note to its default remote
 ```
 

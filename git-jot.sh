@@ -16,18 +16,18 @@ usage() { # [CODE]
 		  $prog -I [-ab BRANCH] [-l BRANCH | -fr REMOTE]
 		  $prog -L [-b BRANCH]
 		  $prog -P
-		  $prog -V [-tb BRANCH] [-n NAME]
+		  $prog -R [-tb BRANCH] [-n NAME]
 		  $prog -X [-afb BRANCH] [-r REMOTE]
 		  $prog -h
 
-		Operations:
+		Commands:
 		  -D  Delete branch jotting.
 		  -E  Edit branch jotting. This is the default command.
 		  -I  Import jottings from another branch, defaulting to upstream.
 		  -L  List branches or jotting names.
 		  -P  Prune jottings matching deleted branches.
+		  -R  Read branch jotting.
 		  -X  Export branch jottings.
-		  -V  View branch jotting.
 		  -h  Show help and exit.
 
 		Options:
@@ -434,7 +434,7 @@ prune_notes() { # /
 		done
 }
 
-view_note() { # /
+read_note() { # /
 	local sha
 	if ! sha="$(_find_blob)"; then
 		fail 'no jottings to show'
@@ -450,14 +450,14 @@ main() { # ...
 	local cmd=EDIT OPT_allow_empty=0 OPT_branch='' OPT_branch_set=0 \
 			OPT_force=0 OPT_frombranch='' OPT_name="$default_name" \
 			OPT_quiet=0 OPT_remote='' OPT_show_tree=0 opt
-	while getopts :DEILPVXab:fhl:n:qr:t opt "$@"; do
+	while getopts :DEILPRXab:fhl:n:qr:t opt "$@"; do
 		case "$opt" in
 			D) cmd=DELETE ;;
 			E) cmd=EDIT ;;
 			I) cmd=IMPORT ;;
 			L) cmd=LIST ;;
 			P) cmd=PRUNE ;;
-			V) cmd=VIEW ;;
+			R) cmd=READ ;;
 			X) cmd=EXPORT ;;
 			a) OPT_allow_empty=1 ;;
 			b) OPT_branch="$OPTARG"; OPT_branch_set=1 ;;
@@ -506,7 +506,7 @@ main() { # ...
 		;;
 		LIST) list_notes ;;
 		PRUNE) prune_notes ;;
-		VIEW) view_note ;;
+		READ) read_note ;;
 	esac
 }
 
