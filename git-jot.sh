@@ -17,6 +17,7 @@ usage() { # [CODE]
 		  $prog -L [-b BRANCH]
 		  $prog -P
 		  $prog -R [-tb BRANCH] [-n NAME]
+		  $prog -W [-b BRANCH] [-n NAME] PATH
 		  $prog -X [-afb BRANCH] [-r REMOTE]
 		  $prog -h
 
@@ -27,6 +28,7 @@ usage() { # [CODE]
 		  -L  List branches or jotting names.
 		  -P  Prune jottings matching deleted branches.
 		  -R  Read branch jotting.
+		  -W  Write branch jotting from file or stdin.
 		  -X  Export branch jottings.
 		  -h  Show help and exit.
 
@@ -446,11 +448,34 @@ read_note() { # /
 	fi
 }
 
+write_note() { # /
+	local has_note=1 sha err
+	if [[ $OPT_path != - && ! -r $OPT_path ]]; then
+		fail "cannot read path: $OPT_path"
+	fi
+	if ! sha="$(_find_blob)"; then
+		has_note=0
+		sha="$(_create_blob)"
+	fi
+	if ! err="$(
+		_git_notes "$OPT_branch" add \
+			--allow-empty --no-stripspace -f -F "$OPT_path" "$sha" 2>&1
+	)"; then
+		[[ -z $err ]] || printf '%s\n' "$err" >&2
+		return 1
+	fi
+	if (( has_note )); then
+		tell 'Updated %s/%s jottings.\n' "$OPT_branch" "$OPT_name"
+	else
+		tell 'Created %s/%s jottings.\n' "$OPT_branch" "$OPT_name"
+	fi
+}
+
 main() { # ...
 	local cmd=EDIT OPT_allow_empty=0 OPT_branch='' OPT_branch_set=0 \
 			OPT_force=0 OPT_frombranch='' OPT_name="$default_name" \
-			OPT_quiet=0 OPT_remote='' OPT_show_tree=0 opt
-	while getopts :DEILPRXab:fhl:n:qr:t opt "$@"; do
+			OPT_path='' OPT_quiet=0 OPT_remote='' OPT_show_tree=0 opt
+	while getopts :DEILPRWXab:fhl:n:qr:t opt "$@"; do
 		case "$opt" in
 			D) cmd=DELETE ;;
 			E) cmd=EDIT ;;
@@ -458,6 +483,7 @@ main() { # ...
 			L) cmd=LIST ;;
 			P) cmd=PRUNE ;;
 			R) cmd=READ ;;
+			W) cmd=WRITE ;;
 			X) cmd=EXPORT ;;
 			a) OPT_allow_empty=1 ;;
 			b) OPT_branch="$OPTARG"; OPT_branch_set=1 ;;
@@ -468,11 +494,17 @@ main() { # ...
 			q) OPT_quiet=1 ;;
 			r) OPT_remote="$OPTARG" ;;
 			t) OPT_show_tree=1 ;;
+			:) fail "option requires an argument: $OPTARG" ;;
 			*) fail "unknown option: $OPTARG" ;;
 		esac
 	done
 	shift $(( OPTIND-1 ))
-	(( $# == 0 )) || fail 'trailing arguments'
+	if [[ $cmd == WRITE ]]; then
+		(( $# == 1 )) || fail 'write requires exactly one PATH argument'
+		OPT_path="$1"
+	else
+		(( $# == 0 )) || fail 'trailing arguments'
+	fi
 
 	_check_name "$OPT_name"
 	if [[ -z $OPT_branch && $cmd != LIST ]]; then
@@ -507,6 +539,7 @@ main() { # ...
 		LIST) list_notes ;;
 		PRUNE) prune_notes ;;
 		READ) read_note ;;
+		WRITE) write_note ;;
 	esac
 }
 
