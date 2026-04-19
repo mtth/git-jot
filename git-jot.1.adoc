@@ -140,7 +140,7 @@ The current notes ref will be merged with the imported one, using the union stra
 
 `-t`::
 Show notes tree ref instead of contents.
-This can be used to perform operations on the underlying notes, for example to view the branch jotting history via `git log -p "$(git jot -Rt)"`.
+This can be used to perform operations on the underlying notes, for example to view branch jottings history via `git log -p "$(git jot -Rt)"`.
 
 
 == Implementation

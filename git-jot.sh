@@ -28,7 +28,7 @@ usage() { # [CODE]
 		  -L  List branches or jotting names.
 		  -P  Prune jottings matching deleted branches.
 		  -R  Read branch jotting.
-		  -W  Write branch jotting from file or stdin.
+		  -W  Write branch jotting from file or stdin (set PATH to -).
 		  -X  Export branch jottings.
 		  -h  Show help and exit.
 
@@ -448,10 +448,10 @@ read_note() { # /
 	fi
 }
 
-write_note() { # /
-	local has_note=1 sha err
-	if [[ $OPT_path != - && ! -r $OPT_path ]]; then
-		fail "cannot read path: $OPT_path"
+write_note() { # PATH /
+	local path="$1" has_note=1 sha err
+	if [[ $path != - && ! -r $path ]]; then
+		fail "cannot read path: $path"
 	fi
 	if ! sha="$(_find_blob)"; then
 		has_note=0
@@ -459,8 +459,9 @@ write_note() { # /
 	fi
 	if ! err="$(
 		_git_notes "$OPT_branch" add \
-			--allow-empty --no-stripspace -f -F "$OPT_path" "$sha" 2>&1
+			--allow-empty --no-stripspace -f -F "$path" "$sha" 2>&1
 	)"; then
+		(( has_note )) || _delete_blob "$sha"
 		[[ -z $err ]] || printf '%s\n' "$err" >&2
 		return 1
 	fi
@@ -474,7 +475,7 @@ write_note() { # /
 main() { # ...
 	local cmd=EDIT OPT_allow_empty=0 OPT_branch='' OPT_branch_set=0 \
 			OPT_force=0 OPT_frombranch='' OPT_name="$default_name" \
-			OPT_path='' OPT_quiet=0 OPT_remote='' OPT_show_tree=0 opt
+			OPT_quiet=0 OPT_remote='' OPT_show_tree=0 opt
 	while getopts :DEILPRWXab:fhl:n:qr:t opt "$@"; do
 		case "$opt" in
 			D) cmd=DELETE ;;
@@ -499,12 +500,11 @@ main() { # ...
 		esac
 	done
 	shift $(( OPTIND-1 ))
-	if [[ $cmd == WRITE ]]; then
-		(( $# == 1 )) || fail 'write requires exactly one PATH argument'
-		OPT_path="$1"
-	else
-		(( $# == 0 )) || fail 'trailing arguments'
-	fi
+
+	case "$cmd" in
+		WRITE) (( $# == 1 )) || fail 'write requires exactly one PATH argument' ;;
+		*) (( $# == 0 )) || fail 'trailing arguments' ;;
+	esac
 
 	_check_name "$OPT_name"
 	if [[ -z $OPT_branch && $cmd != LIST ]]; then
@@ -539,7 +539,7 @@ main() { # ...
 		LIST) list_notes ;;
 		PRUNE) prune_notes ;;
 		READ) read_note ;;
-		WRITE) write_note ;;
+		WRITE) write_note "$1" ;;
 	esac
 }
 
